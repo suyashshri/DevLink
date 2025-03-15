@@ -12,3 +12,61 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        String    @id @default(uuid())
+  clerkId   String    @unique
+  username  String    @unique
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Project   Project[]
+  File      File[]
+}
+
+model Project {
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  visibility   String        @default("private")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id])
+  repositories Repository[]
+  EnvVariable  EnvVariable[]
+}
+
+model Repository {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  File      File[]
+}
+
+model File {
+  id           String     @id @default(uuid())
+  name         String
+  pathS3Url    String
+  version      Int        @default(1)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  isLocked     Boolean    @default(false)
+  lockedId     String?
+  lockedBy     User?      @relation(fields: [lockedId], references: [id])
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+}
+
+model EnvVariable {
+  id        String   @id @default(uuid())
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+}
