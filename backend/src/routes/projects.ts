@@ -1,40 +1,23 @@
-router.post("/projects", async (req, res) => {
-  const { name, description, visibility } = req.body;
-  const project = await prisma.project.create({
-    data: { name, description, visibility, ownerId: req.user.id },
-  });
-  res.status(201).json(project);
+import { Router } from "express";
+import { CreateProjectType } from "../utils/types";
+
+const router = Router();
+
+router.post("/", (req, res) => {
+  const data = CreateProjectType.safeParse(req.body);
+  if (!data.success) {
+    res.status(400).json({
+      message: "Incorrect inputs",
+    });
+  }
+
+  const { name, description, visibility } = data.data;
 });
 
-router.get("/projects", async (req, res) => {
-  const projects = await prisma.project.findMany({
-    where: { ownerId: req.user.id },
-  });
-  res.json(projects);
-});
+router.get("/", () => {});
 
-router.get("/projects/:projectId", async (req, res) => {
-  const project = await prisma.project.findUnique({
-    where: { id: req.params.projectId },
-  });
-  res.json(project);
-});
+router.get("/:projectId", () => {});
 
-router.delete("/projects/:projectId", async (req, res) => {
-  await prisma.project.delete({ where: { id: req.params.projectId } });
-  res.status(204).send();
-});
+router.delete("/:projectId", () => {});
 
-router.post("/projects/:projectId/repositories", async (req, res) => {
-  const repo = await prisma.repository.create({
-    data: { name: req.body.name, projectId: req.params.projectId },
-  });
-  res.status(201).json(repo);
-});
-
-router.get("/projects/:projectId/repositories", async (req, res) => {
-  const repos = await prisma.repository.findMany({
-    where: { projectId: req.params.projectId },
-  });
-  res.json(repos);
-});
+export default router;
