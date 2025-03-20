@@ -33,6 +33,8 @@ router.post("/", requireAuth(), async (req, res) => {
 
     res.status(201).json({
       projectId: newProject.id,
+      projectName: newProject.name,
+      projectOwnerId: newProject.ownerId,
     });
   } catch (error) {
     console.log("Error in creating new project", error);
@@ -62,8 +64,70 @@ router.get("/", requireAuth(), async (req, res) => {
   }
 });
 
-router.get("/:projectId", requireAuth(), async (req, res) => {});
+router.get("/:projectId", requireAuth(), async (req, res) => {
+  const { projectId } = req.params;
+  if (!projectId) {
+    res.status(400).json({
+      message: "Incorrect ProjectId",
+    });
+    return;
+  }
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      res.status(403).json({
+        message: "Unauthorized, Please login first",
+      });
+      return;
+    }
 
-router.delete("/:projectId", requireAuth(), async (req, res) => {});
+    const project = await prisma.project.findUnique({
+      where: {
+        id: projectId,
+        ownerId: userId,
+      },
+    });
+    res.status(201).json({
+      project,
+    });
+  } catch (error) {
+    console.log(`Error in getting project ${projectId}`, error);
+  }
+});
+
+// router.put("/:projectId", requireAuth(), async (req, res)=>{
+
+// })
+
+router.delete("/:projectId", requireAuth(), async (req, res) => {
+  const { projectId } = req.params;
+  if (!projectId) {
+    res.status(400).json({
+      message: "Incorrect ProjectId",
+    });
+    return;
+  }
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      res.status(403).json({
+        message: "Unauthorized, Please login first",
+      });
+      return;
+    }
+
+    await prisma.project.delete({
+      where: {
+        id: projectId,
+        ownerId: userId,
+      },
+    });
+    res.status(201).json({
+      message: "Project deleted successfully",
+    });
+  } catch (error) {
+    console.log(`Error in deleting project ${projectId}`, error);
+  }
+});
 
 export default router;

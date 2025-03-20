@@ -25,40 +25,59 @@ model User {
 }
 
 model Project {
-  id           String        @id @default(uuid())
-  name         String
-  description  String?
-  visibility   String        @default("private")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  ownerId      String
-  owner        User          @relation(fields: [ownerId], references: [id])
-  repositories Repository[]
-  EnvVariable  EnvVariable[]
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  visibility  String        @default("private")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  ownerId     String
+  owner       User          @relation(fields: [ownerId], references: [id])
+  EnvVariable EnvVariable[]
+  File        File[]
+  Folder      Folder[]
 }
 
-model Repository {
+// model Repository {
+//   id        String   @id @default(uuid())
+//   name      String
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   projectId String
+//   project   Project  @relation(fields: [projectId], references: [id])
+//   File      File[]
+// }
+
+model Folder {
   id        String   @id @default(uuid())
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id])
-  File      File[]
+  project   Project @relation(fields: [projectId], references: [id])
+
+  parentFolderId String?
+  parentFolder   Folder? @relation("FolderHierarchy", fields: [parentFolderId], references: [id])
+
+  subFolders Folder[] @relation("FolderHierarchy")
+  files      File[]
 }
 
 model File {
-  id           String     @id @default(uuid())
-  name         String
-  pathS3Url    String
-  version      Int        @default(1)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  isLocked     Boolean    @default(false)
-  lockedId     String?
-  lockedBy     User?      @relation(fields: [lockedId], references: [id])
-  repositoryId String
-  repository   Repository @relation(fields: [repositoryId], references: [id])
+  id             String   @id @default(uuid())
+  name           String
+  pathS3Url      String
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  isLocked       Boolean  @default(false)
+  lockedById     String?
+  lockedBy       User?    @relation(fields: [lockedById], references: [id])
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id])
+  parentFolderId String?
+  parentFolder   Folder?  @relation(fields: [parentFolderId], references: [id])
 }
 
 model EnvVariable {
