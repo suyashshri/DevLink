@@ -5,3 +5,12 @@ export const CreateProjectType = z.object({
   description: z.string().optional(),
   visibility: z.enum(["public", "private"]),
 });
+
+export const CreateFolderType = z.object({
+  name: z.string(),
+  parentFolderId: z.string().optional(),
+});
+
+export const UpdateFolderType = z.object({
+  name: z.string(),
+});
