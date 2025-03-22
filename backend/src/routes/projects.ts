@@ -135,7 +135,7 @@ router.delete("/:projectId", requireAuth(), async (req, res) => {
   }
 });
 
-//Manage Files and Folders
+//Manage Folders
 
 router.get("/:projectId/pre-signed-url", requireAuth(), async (req, res) => {
   const { projectId } = req.params;
@@ -295,17 +295,33 @@ router.delete(
   }
 );
 
+//Manage Files
+
 router.post("/:projectId/files", async (req, res) => {
   const { projectId } = req.params;
-  const { name, filePath, folderId } = req.body;
+  const data = req.body;
+  if (!data.success) {
+    res.status(400).json({
+      message: "Incorrect inputs",
+    });
+    return;
+  }
+  const { userId } = getAuth(req);
+  if (!userId) {
+    res.status(403).json({
+      message: "Unauthorized, Please login first",
+    });
+    return;
+  }
+  const parsedData = data.data;
 
   try {
     const file = await prisma.file.create({
       data: {
-        name,
-        pathS3Url: `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${filePath}`,
+        name: parsedData.name,
+        pathS3Url: `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${parsedData.filePath}`,
         projectId,
-        parentFolderId: folderId,
+        parentFolderId: parsedData.folderId,
       },
     });
 
@@ -314,5 +330,8 @@ router.post("/:projectId/files", async (req, res) => {
     res.status(500).json({ error: "Error saving file metadata" });
   }
 });
+
+//File locking
+router.patch("/:projectId/files/:fileId/lock");
 
 export default router;

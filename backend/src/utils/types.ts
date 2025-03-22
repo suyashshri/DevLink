@@ -14,3 +14,9 @@ export const CreateFolderType = z.object({
 export const UpdateFolderType = z.object({
   name: z.string(),
 });
+
+export const CreateFileType = z.object({
+  name: z.string(),
+  filePath: z.string(),
+  folderId: z.string(),
+});
