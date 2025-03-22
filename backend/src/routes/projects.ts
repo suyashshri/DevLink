@@ -297,7 +297,7 @@ router.delete(
 
 //Manage Files
 
-router.post("/:projectId/files", async (req, res) => {
+router.post("/:projectId/files", requireAuth(), async (req, res) => {
   const { projectId } = req.params;
   const data = req.body;
   if (!data.success) {
@@ -332,6 +332,105 @@ router.post("/:projectId/files", async (req, res) => {
 });
 
 //File locking
-router.patch("/:projectId/files/:fileId/lock");
+router.patch(
+  "/:projectId/files/:fileId/lock",
+  requireAuth(),
+  async (req, res) => {
+    const { projectId, fileId } = req.params;
+    const { userId } = getAuth(req);
+    if (!userId) {
+      res.status(403).json({
+        message: "Unauthorized, Please login first",
+      });
+      return;
+    }
+    try {
+      const file = await prisma.file.findFirst({
+        where: {
+          id: fileId,
+          projectId,
+        },
+      });
+      if (!file) {
+        res.status(400).json({
+          message: "Unable to update the file",
+        });
+        return;
+      }
+      if (file.isLocked) {
+        res.status(201).json({
+          success: false,
+          message: "File is already locked by another user",
+          lockedBy: userId,
+        });
+        return;
+      }
+      const lockedFile = await prisma.file.update({
+        where: {
+          id: fileId,
+          projectId,
+        },
+        data: {
+          isLocked: true,
+          lockedById: userId,
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "File locked successfully",
+        lockedBy: userId,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Error locking file" });
+    }
+  }
+);
+
+router.patch(
+  "/:projectId/files/:fileId/unlock",
+  requireAuth(),
+  async (req, res) => {
+    const { projectId, fileId } = req.params;
+    const { userId } = getAuth(req);
+    if (!userId) {
+      res.status(403).json({
+        message: "Unauthorized, Please login first",
+      });
+      return;
+    }
+    try {
+      const file = await prisma.file.findFirst({
+        where: {
+          id: fileId,
+          projectId,
+        },
+      });
+      if (!file) {
+        res.status(400).json({
+          message: "Unable to update the file",
+        });
+        return;
+      }
+      const unLockedFile = await prisma.file.update({
+        where: {
+          id: fileId,
+          projectId,
+        },
+        data: {
+          isLocked: false,
+          lockedById: null,
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "File unlocked successfully",
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Error locking file" });
+    }
+  }
+);
 
 export default router;
