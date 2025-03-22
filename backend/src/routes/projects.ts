@@ -6,6 +6,7 @@ import {
 } from "../utils/types";
 import { prisma } from "../utils/db";
 import { getAuth, requireAuth } from "@clerk/express";
+import { putObject } from "../utils/preSignedUrl";
 
 const router = Router();
 
@@ -135,6 +136,29 @@ router.delete("/:projectId", requireAuth(), async (req, res) => {
 });
 
 //Manage Files and Folders
+
+router.get("/:projectId/pre-signed-url", requireAuth(), async (req, res) => {
+  const { projectId } = req.params;
+  const { fileName, fileType, folderId } = req.query;
+  if (!projectId || !fileName || !fileType) {
+    res.status(400).json({
+      error: "ProjectId is required",
+    });
+    return;
+  }
+  if (typeof fileName !== "string" || typeof fileType !== "string") {
+    throw new Error("fileName and folderId must be strings");
+  }
+  try {
+    const s3Key = `uploads/${projectId}/${
+      folderId ? folderId + "/" : ""
+    }${fileName}`;
+    const uploadUrl = await putObject(s3Key, fileType);
+    res.json({ uploadUrl, filePath: s3Key });
+  } catch (error) {
+    res.status(500).json({ error: "Error generating pre-signed URL" });
+  }
+});
 
 router.post("/:projectId/folders", requireAuth(), async (req, res) => {
   const { projectId } = req.params;
@@ -270,5 +294,25 @@ router.delete(
     }
   }
 );
+
+router.post("/:projectId/files", async (req, res) => {
+  const { projectId } = req.params;
+  const { name, filePath, folderId } = req.body;
+
+  try {
+    const file = await prisma.file.create({
+      data: {
+        name,
+        pathS3Url: `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${filePath}`,
+        projectId,
+        parentFolderId: folderId,
+      },
+    });
+
+    res.status(201).json(file);
+  } catch (error) {
+    res.status(500).json({ error: "Error saving file metadata" });
+  }
+});
 
 export default router;
