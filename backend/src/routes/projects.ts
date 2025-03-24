@@ -357,15 +357,15 @@ router.patch(
         });
         return;
       }
-      if (file.isLocked) {
-        res.status(201).json({
+      if (file.isLocked && file.lockedById !== userId) {
+        res.status(403).json({
           success: false,
           message: "File is already locked by another user",
-          lockedBy: userId,
+          lockedBy: file.lockedById,
         });
         return;
       }
-      const lockedFile = await prisma.file.update({
+      await prisma.file.update({
         where: {
           id: fileId,
           projectId,
@@ -373,6 +373,7 @@ router.patch(
         data: {
           isLocked: true,
           lockedById: userId,
+          updatedAt: new Date(),
         },
       });
 
@@ -382,7 +383,9 @@ router.patch(
         lockedBy: userId,
       });
     } catch (error) {
+      console.log("Error locking file:", error);
       res.status(500).json({ error: "Error locking file" });
+      return;
     }
   }
 );
@@ -412,7 +415,14 @@ router.patch(
         });
         return;
       }
-      const unLockedFile = await prisma.file.update({
+      if (file.lockedById !== userId) {
+        res.status(403).json({
+          success: false,
+          message: "You do not have permission to unlock this file",
+        });
+        return;
+      }
+      await prisma.file.update({
         where: {
           id: fileId,
           projectId,
@@ -428,6 +438,7 @@ router.patch(
         message: "File unlocked successfully",
       });
     } catch (error) {
+      console.log("Error unlocking file:", error);
       res.status(500).json({ error: "Error locking file" });
     }
   }
