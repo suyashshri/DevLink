@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   extractRepoDetails,
   getLatestCommit,
+  getRepoContents,
   validateGitHubRepo,
 } from "../utils/githubAuth";
 
@@ -49,6 +50,30 @@ router.post("/latest-commit", async (req, res) => {
     const latestCommit = await getLatestCommit(owner, repo);
 
     res.json(latestCommit);
+  } catch (error) {
+    res.status(500).json({ error: error });
+    return;
+  }
+});
+
+router.post("/api/github/repo-contents", async (req, res) => {
+  try {
+    const { repoUrl } = req.body;
+    if (!repoUrl) {
+      res.status(400).json({ error: "Repository URL is required" });
+      return;
+    }
+
+    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    if (!match) {
+      res.status(400).json({ error: "Invalid GitHub URL" });
+      return;
+    }
+    const { owner, repo } = { owner: match[1], repo: match[2] };
+    const latestCommit = await getLatestCommit(owner, repo);
+    const files = await getRepoContents(owner, repo, latestCommit.sha);
+
+    res.json({ latestCommit, files });
   } catch (error) {
     res.status(500).json({ error: error });
     return;

@@ -40,3 +40,20 @@ export async function getLatestCommit(owner: string, repo: string) {
     throw new Error("Error fetching latest commit");
   }
 }
+
+export const getRepoContents = async (
+  owner: string,
+  repo: string,
+  commitSha: string
+) => {
+  try {
+    const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${commitSha}?recursive=1`;
+    const response = await axios.get(url);
+
+    if (!response.data.tree) throw new Error("No repository contents found");
+
+    return response.data.tree.filter((item: any) => item.type === "blob"); // Only files
+  } catch (error) {
+    throw new Error("Error fetching repository contents");
+  }
+};
